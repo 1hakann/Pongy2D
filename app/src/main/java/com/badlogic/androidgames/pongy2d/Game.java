@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -42,7 +43,7 @@ public class Game extends SurfaceView implements Runnable {
     super(context);
 
     mScreenX = x;
-    mScreenX = y;
+    mScreenY = y;
 
     mFontSize = mScreenX / 20;
     mFontMargin = mScreenX / 75;
@@ -50,11 +51,16 @@ public class Game extends SurfaceView implements Runnable {
     mHolder = getHolder();
     mPaint = new Paint();
 
+    mBall = new Ball(mScreenX);
+    mPaddle = new Paddle(mScreenX, mScreenY);
+
     NewGame();
     }
 
     // 9 -newgame
     private void NewGame() {
+        mBall.reset(mScreenX, mScreenY);
+
         score = 0;
         lives = 3;
     }
@@ -81,6 +87,8 @@ public class Game extends SurfaceView implements Runnable {
     // 11 - update method
     private void update() {
         // update the bat and  the ball
+        mBall.update(mFPS);
+        mPaddle.update(mFPS);
     }
 
     // 12 - detectCollision
@@ -107,6 +115,8 @@ public class Game extends SurfaceView implements Runnable {
             mPaint.setColor(Color.argb(255,255,255,255));
 
             // draw paddle, ball and brick
+            mCanvas.drawRect(mBall.getmRectf(), mPaint);
+            mCanvas.drawRect(mPaddle.getRect(), mPaint);
 
 
             mPaint.setTextSize(mFontSize);
@@ -121,6 +131,28 @@ public class Game extends SurfaceView implements Runnable {
         }
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction() & MotionEvent.ACTION_MASK) {
+
+            case MotionEvent.ACTION_DOWN:
+            mPaused = false;
+
+            if(event.getX() > mScreenX / 2) {
+                mPaddle.setMovementState(mPaddle.RIGHT);
+            } else {
+                mPaddle.setMovementState(mPaddle.LEFT);
+            }
+            break;
+
+            case MotionEvent.ACTION_UP:
+                mPaddle.setMovementState(mPaddle.STOPPED);
+                break;
+        }
+        return true;
+    }
+
+    // 14-
     private void printDebuggingText(){
         int debugSize = mFontSize / 2;
         int debugStart = 150;
@@ -130,6 +162,7 @@ public class Game extends SurfaceView implements Runnable {
 
     }
 
+    // 15-
     public void pause() {
         mPlaying = false;
         try {
@@ -139,6 +172,7 @@ public class Game extends SurfaceView implements Runnable {
         }
     }
 
+    // 16-
     public void resume() {
         mPlaying = true;
         mGameThread = new Thread(this);
