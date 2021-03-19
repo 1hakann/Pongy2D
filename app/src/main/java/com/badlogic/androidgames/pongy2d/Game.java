@@ -1,13 +1,22 @@
 package com.badlogic.androidgames.pongy2d;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.os.Build;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
+import java.io.IOException;
 
 // 5 - Let's extend surfaceview and add the necessary variables
 public class Game extends SurfaceView implements Runnable {
@@ -38,6 +47,13 @@ public class Game extends SurfaceView implements Runnable {
     private volatile boolean mPlaying;
     private boolean mPaused = true;
 
+    // 23-audio variables
+    private SoundPool soundPool;
+    private int beepId = -1;
+    private int boopId = -1;
+    private int bopId = -1;
+    private int missId = -1;
+
     // 8- let's coding constructor
     public Game(Context context, int x, int y) {
     super(context);
@@ -53,6 +69,43 @@ public class Game extends SurfaceView implements Runnable {
 
     mBall = new Ball(mScreenX);
     mPaddle = new Paddle(mScreenX, mScreenY);
+
+    // 24- Audio Spec. Initialized
+    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+
+        soundPool = new SoundPool.Builder()
+                .setMaxStreams(5)
+                .setAudioAttributes(audioAttributes)
+                .build();
+    } else {
+        soundPool = new SoundPool(5, AudioManager.STREAM_MUSIC, 0);
+    }
+
+    // 25- Try catch for sound
+    try {
+        AssetManager assetManager = context.getAssets();
+        AssetFileDescriptor descriptor;
+
+        descriptor = assetManager.openFd("beep.ogg");
+        beepId = soundPool.load(descriptor, 0);
+
+        descriptor = assetManager.openFd("boop.ogg");
+        boopId = soundPool.load(descriptor,0 );
+
+        descriptor = assetManager.openFd("bop.ogg");
+        bopId = soundPool.load(descriptor, 0);
+
+        descriptor = assetManager.openFd("miss.ogg");
+        missId = soundPool.load(descriptor, 0);
+
+    } catch (IOException e) {
+        Log.e("error","Ses Dosyaları Yüklenemedi");
+
+    }
 
     NewGame();
     }
@@ -91,19 +144,42 @@ public class Game extends SurfaceView implements Runnable {
         mPaddle.update(mFPS);
     }
 
-    // 12 - detectCollision
+    // 12 - detectCollision //26-coding the method
     private void detectCollisions() {
         // Has the bat hit the ball?
+        if(RectF.intersects(mPaddle.getRect(), mBall.getmRectf())) {
+            mBall.PaddleBounce(mPaddle.getRect());
+            mBall.increaseVelocity();
+            score++;
+            soundPool.play(beepId,1,1,0,0,1);
+        }
 
         // Has the ball hit the edge of the screen
 
-        // Bottom
+        // Bottomg
+        if(mBall.getmRectf().bottom > mScreenY) {
+            mBall.reverseYvelocity();
+            lives--;
+            soundPool.play(missId,1,1,0,0,1);
+        }
 
         // Top
+        if(mBall.getmRectf().top < 0) {
+            mBall.reverseYvelocity();
+            soundPool.play(boopId,1,1,0,0,1);
+        }
 
         // Left
+        if(mBall.getmRectf().left < 0) {
+            mBall.reverseXvelocity();
+            soundPool.play(bopId,1,1,0,0,1);
+        }
 
         // Right
+        if(mBall.getmRectf().right > mScreenX) {
+            mBall.reverseXvelocity();
+            soundPool.play(bopId, 1,1,0,0,1);
+        }
     }
 
     // 13 - draw method
