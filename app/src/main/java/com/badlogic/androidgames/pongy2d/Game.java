@@ -38,6 +38,7 @@ public class Game extends SurfaceView implements Runnable {
     // 6- Let's add objects of other classes
     private Paddle mPaddle;
     private Ball mBall;
+    private Brick mBrick;
 
     private int score;
     private int lives;
@@ -53,6 +54,10 @@ public class Game extends SurfaceView implements Runnable {
     private int boopId = -1;
     private int bopId = -1;
     private int missId = -1;
+    private int brickId = -1;
+
+    Brick[] bricks = new Brick[200];
+    int numBricks = 0;
 
     // 8- let's coding constructor
     public Game(Context context, int x, int y) {
@@ -69,6 +74,9 @@ public class Game extends SurfaceView implements Runnable {
 
     mBall = new Ball(mScreenX);
     mPaddle = new Paddle(mScreenX, mScreenY);
+
+    Brick[] bricks = new Brick[200];
+    //int numBricks = 0;
 
     // 24- Audio Spec. Initialized
     if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -102,6 +110,9 @@ public class Game extends SurfaceView implements Runnable {
         descriptor = assetManager.openFd("miss.ogg");
         missId = soundPool.load(descriptor, 0);
 
+        descriptor = assetManager.openFd("brick.ogg");
+        brickId = soundPool.load(descriptor, 0);
+
     } catch (IOException e) {
         Log.e("error","Ses Dosyaları Yüklenemedi");
 
@@ -114,8 +125,20 @@ public class Game extends SurfaceView implements Runnable {
     private void NewGame() {
         mBall.reset(mScreenX, mScreenY);
 
+        int brickWidth = mScreenX / 8;
+        int brickHeight = mScreenY / 10;
+
         score = 0;
         lives = 3;
+
+        //tuğladan bir duvar inşa edelim
+        numBricks = 0;
+        for(int column = 0; column < 8; column++) {
+            for(int row = 0; row < 3; row++) {
+                bricks[numBricks] = new Brick(row, column, brickWidth, brickHeight);
+                numBricks++;
+            }
+        }
     }
 
     // 10- 0verride the run method after implements runnable
@@ -146,6 +169,18 @@ public class Game extends SurfaceView implements Runnable {
 
     // 12 - detectCollision //26-coding the method
     private void detectCollisions() {
+
+        for (int i=0; i<numBricks; i++) {
+            if (bricks[i].getVisibility()) {
+                if(RectF.intersects(bricks[i].getmRect(), mBall.getmRectf())) {
+                    bricks[i].setIsvisible();
+                    mBall.reverseYvelocity();
+                    score = score + 10;
+                    soundPool.play(brickId,1,1,0,0,1);
+                }
+            }
+        }
+
         // Has the bat hit the ball?
         if(RectF.intersects(mPaddle.getRect(), mBall.getmRectf())) {
             mBall.PaddleBounce(mPaddle.getRect());
@@ -194,11 +229,34 @@ public class Game extends SurfaceView implements Runnable {
             mCanvas.drawRect(mBall.getmRectf(), mPaint);
             mCanvas.drawRect(mPaddle.getRect(), mPaint);
 
+            // Change the brush color for drawing
+            mPaint.setColor(Color.argb(255,  249, 129, 0));
 
+            // Draw the bricks if visible
+            for(int i = 0; i < numBricks; i++){
+                if(bricks[i].getVisibility()) {
+                    mCanvas.drawRect(bricks[i].getmRect(), mPaint);
+                }
+            }
+
+            mPaint.setColor(Color.argb(255,  135, 72, 103));
             mPaint.setTextSize(mFontSize);
 
             // draw the hud
             mCanvas.drawText("Score: "+score + "Lives: "+lives, mFontMargin,mFontSize,mPaint);
+
+            // Has the player cleared the screen?
+            if (score == numBricks * 10) {
+                mPaint.setTextSize(90);
+                mCanvas.drawText("KAZANDINIZ!", 100, mScreenY / 2, mPaint);
+            }
+
+            // Has the player lost?
+            if (lives <= 0) {
+                mPaint.setTextSize(90);
+                mCanvas.drawText("KAYBETTİNİZ!", 10, mScreenY / 2, mPaint);
+            }
+
             if(isDebug) {
                 printDebuggingText();
             }

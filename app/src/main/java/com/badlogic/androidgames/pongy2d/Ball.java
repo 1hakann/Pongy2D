@@ -43,7 +43,7 @@ public class Ball {
         mRectf.left = x / 2;
         mRectf.top = 0;
         mRectf.right = x/2 + ballWidth;
-        mRectf.bottom = ballHeight;
+        mRectf.bottom = 10;
 
         mXvelocity = (y/3);
         mYvelocity = -(y/3);
